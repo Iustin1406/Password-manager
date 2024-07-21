@@ -1,6 +1,25 @@
 from generator import *
 from tkinter import *
 from tkinter import messagebox
+import json
+
+
+def search():
+    web = website.get()
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+        usr_name = data[web]["username"]
+        paswrd = data[web]["password"]
+    except KeyError:
+        if len(web):
+            messagebox.showerror("Error", f"{web} not found!")
+        else:
+            messagebox.showerror("Error", f"Enter a website name!")
+    except FileNotFoundError:
+        messagebox.showerror("Error", "File does not exist!")
+    else:
+        messagebox.showinfo("Info", f"Username: {usr_name}\nPassword: {paswrd}")
 
 
 def generate():
@@ -19,11 +38,31 @@ def add_data():
         messagebox.showerror(title="Error", message="Complete all the information!")
         return
 
-    is_ok = messagebox.askokcancel(title=web,
-                                   message=f"Do you want to save this data?\nEmail/username: {name}\nPassword: {paswrd}?")
-    if is_ok:
-        with open('file.txt', 'a') as file:
-            file.write(web + " | " + name + " | " + paswrd + "\n")
+    new_data = {
+        web: {
+            "username": name,
+            "password": paswrd,
+        }
+    }
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+        if web in data:
+            update_data = messagebox.askyesno("Update data",
+                                              "You already have an account for this website.Do you want to update it?")
+            if not update_data:
+                return
+    except FileNotFoundError:
+        is_ok = messagebox.askokcancel(title=web,
+                                       message=f"Do you want to save this data?\nEmail/username: {name}\nPassword: {paswrd}?")
+        if is_ok:
+            with open("data.json", "w") as data_file:
+                json.dump(new_data, data_file, indent=4)
+    else:
+        data.update(new_data)
+        with open("data.json", "w") as data_file:
+            json.dump(data, data_file, indent=4)
+    finally:
         # clear the entries after saving data
         website.delete(0, END)
         username.delete(0, END)
@@ -51,8 +90,8 @@ password_label = Label(text="Password")
 password_label.grid(row=3, column=0)
 
 # Entries
-website = Entry(width=35)
-website.grid(row=1, column=1, columnspan=2)
+website = Entry(width=24)
+website.grid(row=1, column=1)
 website.focus()
 
 username = Entry(width=35)
@@ -62,6 +101,9 @@ password = Entry(width=24)
 password.grid(row=3, column=1)
 
 # Buttons
+search_button = Button(text="Search", command=search)
+search_button.grid(row=1, column=2)
+
 generate_button = Button(text="Generate", width=6, command=generate)
 generate_button.grid(row=3, column=2)
 
